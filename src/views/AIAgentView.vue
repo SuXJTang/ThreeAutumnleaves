@@ -10,53 +10,54 @@
       </div>
     </section>
 
-    <!-- 免费资源板块 -->
-    <section class="resource-section">
+    <!-- 资源类型选择器 -->
+    <section class="resource-selector">
       <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">
-            <span class="title-icon">🆓</span>
-            免费资源
-          </h2>
-          <p class="section-description">优质免费AI工具，零成本体验智能化</p>
-        </div>
-
-        <div class="resource-grid">
-          <ResourceCard
-            v-for="resource in freeResources"
-            :key="resource.id"
-            :title="resource.title"
-            :description="resource.description"
-            :icon="resource.icon"
-            :is-premium="false"
-            :features="resource.features"
-            :action-text="resource.actionText"
-            :action-url="resource.actionUrl"
-            @action="handleResourceAction"
-          />
+        <div class="selector-tabs">
+          <button
+            class="tab-button"
+            :class="{ active: activeTab === 'free' }"
+            @click="loadResourceData('free')"
+          >
+            <span class="tab-icon">🆓</span>
+            <span class="tab-text">免费资源</span>
+            <span class="tab-count" v-if="freeResources.length">({{ freeResources.length }})</span>
+          </button>
+          <button
+            class="tab-button"
+            :class="{ active: activeTab === 'premium' }"
+            @click="loadResourceData('premium')"
+          >
+            <span class="tab-icon">💎</span>
+            <span class="tab-text">付费资源</span>
+            <span class="tab-count" v-if="premiumResources.length"
+              >({{ premiumResources.length }})</span
+            >
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- 付费资源板块 -->
-    <section class="resource-section">
+    <!-- 资源内容区域 -->
+    <section class="resource-content">
       <div class="container">
+        <!-- 当前选中的资源类型标题 -->
         <div class="section-header">
           <h2 class="section-title">
-            <span class="title-icon">💎</span>
-            付费资源
+            <span class="title-icon">{{ activeTab === 'free' ? '🆓' : '💎' }}</span>
+            {{ activeTab === 'free' ? '免费资源' : '付费资源' }}
           </h2>
-          <p class="section-description">专业级AI工具，解锁更强大的功能</p>
         </div>
 
+        <!-- 资源网格 -->
         <div class="resource-grid">
           <ResourceCard
-            v-for="resource in premiumResources"
+            v-for="resource in currentResources"
             :key="resource.id"
             :title="resource.title"
             :description="resource.description"
             :icon="resource.icon"
-            :is-premium="true"
+            :is-premium="activeTab === 'premium'"
             :price="resource.price"
             :features="resource.features"
             :action-text="resource.actionText"
@@ -70,7 +71,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import ResourceCard from '@/components/ResourceCard.vue'
 
 // 资源数据类型定义
@@ -85,15 +87,29 @@ interface Resource {
   price?: string
 }
 
-// 免费资源数据
-const freeResources = ref<Resource[]>([
+const router = useRouter()
+
+// 状态管理
+const activeTab = ref<'free' | 'premium'>('free')
+
+// 资源数据
+const freeResources = ref<Resource[]>([])
+const premiumResources = ref<Resource[]>([])
+
+// 当前显示的资源
+const currentResources = computed(() => {
+  return activeTab.value === 'free' ? freeResources.value : premiumResources.value
+})
+
+// 默认数据（作为备用）
+const defaultFreeResources: Resource[] = [
   {
     id: 'chatgpt-free',
     title: 'ChatGPT 免费版',
     description: 'OpenAI推出的强大对话AI，支持文本生成、问答、代码编写等多种功能',
     icon: '🤖',
     features: ['自然语言对话', '代码生成与调试', '文本创作与编辑', '知识问答'],
-    actionText: '立即使用',
+    actionText: '立即查看',
     actionUrl: 'https://chat.openai.com',
   },
   {
@@ -102,7 +118,7 @@ const freeResources = ref<Resource[]>([
     description: 'Anthropic开发的AI助手，擅长长文本处理和深度分析',
     icon: '🧠',
     features: ['长文本分析', '代码审查', '学术写作', '逻辑推理'],
-    actionText: '开始体验',
+    actionText: '立即查看',
     actionUrl: 'https://claude.ai',
   },
   {
@@ -111,7 +127,7 @@ const freeResources = ref<Resource[]>([
     description: 'Google最新的多模态AI模型，支持文本、图像和代码处理',
     icon: '✨',
     features: ['多模态理解', '图像分析', '代码生成', '实时搜索'],
-    actionText: '免费试用',
+    actionText: '立即查看',
     actionUrl: 'https://gemini.google.com',
   },
   {
@@ -120,70 +136,174 @@ const freeResources = ref<Resource[]>([
     description: '开源AI模型平台，提供大量免费的预训练模型和工具',
     icon: '🤗',
     features: ['开源模型库', '在线模型测试', '免费API调用', '社区支持'],
-    actionText: '探索模型',
+    actionText: '立即查看',
     actionUrl: 'https://huggingface.co',
   },
-])
+  {
+    id: 'perplexity-free',
+    title: 'Perplexity AI',
+    description: '基于搜索的AI问答工具，提供实时信息和引用来源',
+    icon: '🔍',
+    features: ['实时搜索', '引用来源', '多语言支持', '学术研究'],
+    actionText: '立即查看',
+    actionUrl: 'https://perplexity.ai',
+  },
+  {
+    id: 'poe-free',
+    title: 'Poe by Quora',
+    description: 'Quora推出的AI聊天平台，集成多个AI模型',
+    icon: '💬',
+    features: ['多模型访问', '对话历史', '社区分享', '移动应用'],
+    actionText: '立即查看',
+    actionUrl: 'https://poe.com',
+  },
+  {
+    id: 'character-ai',
+    title: 'Character.AI',
+    description: '创建和与AI角色对话的平台，支持个性化AI助手',
+    icon: '🎭',
+    features: ['角色创建', '个性化对话', '创意写作', '娱乐互动'],
+    actionText: '立即查看',
+    actionUrl: 'https://character.ai',
+  },
+  {
+    id: 'you-chat',
+    title: 'You.com Chat',
+    description: '集成搜索功能的AI聊天工具，提供准确的实时信息',
+    icon: '🌐',
+    features: ['搜索集成', '实时信息', '多模态输入', '隐私保护'],
+    actionText: '立即查看',
+    actionUrl: 'https://you.com',
+  },
+]
 
-// 付费资源数据
-const premiumResources = ref<Resource[]>([
+const defaultPremiumResources: Resource[] = [
   {
-    id: 'chatgpt-plus',
-    title: 'ChatGPT Plus',
-    description: 'ChatGPT的高级版本，提供更快的响应速度和GPT-4访问权限',
-    icon: '🚀',
-    price: '$20/月',
-    features: ['GPT-4模型访问', '优先响应速度', '插件生态系统', '高级功能支持'],
-    actionText: '立即订阅',
-    actionUrl: 'https://chat.openai.com/plus',
+    id: 'ai-writing-pro',
+    title: 'AI写作大师',
+    description: '专业的AI写作工具，支持多种文体创作和智能润色功能',
+    icon: '✍️',
+    price: '¥299',
+    features: ['多文体写作', '智能润色', '原创检测', '永久使用'],
+    actionText: '立即查看',
+    actionUrl: '#',
   },
   {
-    id: 'claude-pro',
-    title: 'Claude Pro',
-    description: 'Claude的专业版本，提供更高的使用限制和优先访问',
-    icon: '💎',
-    price: '$20/月',
-    features: ['5倍使用量', '优先访问', '更长对话', '高级分析'],
-    actionText: '升级Pro',
-    actionUrl: 'https://claude.ai/pro',
-  },
-  {
-    id: 'midjourney',
-    title: 'Midjourney',
-    description: '顶级AI图像生成工具，创造令人惊艳的艺术作品和设计',
+    id: 'ai-design-suite',
+    title: 'AI设计套件',
+    description: '集成多种AI设计工具，包含logo设计、海报制作、图标生成等',
     icon: '🎨',
-    price: '$10-60/月',
-    features: ['高质量图像生成', '多种艺术风格', '商业使用许可', '社区画廊'],
-    actionText: '开始创作',
-    actionUrl: 'https://midjourney.com',
+    price: '¥599',
+    features: ['Logo设计', '海报制作', '图标生成', '商用授权'],
+    actionText: '立即查看',
+    actionUrl: '#',
   },
   {
-    id: 'github-copilot',
-    title: 'GitHub Copilot',
-    description: 'AI编程助手，实时提供代码建议和自动补全',
+    id: 'ai-code-assistant',
+    title: 'AI编程助手',
+    description: '智能代码生成和优化工具，支持多种编程语言',
     icon: '👨‍💻',
-    price: '$10/月',
-    features: ['AI代码补全', '多语言支持', 'IDE集成', '代码解释'],
-    actionText: '开始编程',
-    actionUrl: 'https://github.com/features/copilot',
+    price: '¥399',
+    features: ['代码生成', '智能补全', '错误检测', '性能优化'],
+    actionText: '立即查看',
+    actionUrl: '#',
   },
-])
+  {
+    id: 'ai-video-editor',
+    title: 'AI视频编辑器',
+    description: '智能视频剪辑工具，自动生成字幕、转场和特效',
+    icon: '🎬',
+    price: '¥799',
+    features: ['智能剪辑', '自动字幕', '特效生成', '批量处理'],
+    actionText: '立即查看',
+    actionUrl: '#',
+  },
+  {
+    id: 'ai-data-analyzer',
+    title: 'AI数据分析师',
+    description: '智能数据分析和可视化工具，快速生成专业报告',
+    icon: '📈',
+    price: '¥499',
+    features: ['数据分析', '图表生成', '报告制作', '趋势预测'],
+    actionText: '立即查看',
+    actionUrl: '#',
+  },
+  {
+    id: 'ai-translator-pro',
+    title: 'AI翻译专家',
+    description: '专业级AI翻译工具，支持多语言实时翻译和文档翻译',
+    icon: '🌍',
+    price: '¥199',
+    features: ['实时翻译', '文档翻译', '语音翻译', '专业术语'],
+    actionText: '立即查看',
+    actionUrl: '#',
+  },
+  {
+    id: 'ai-voice-studio',
+    title: 'AI语音工作室',
+    description: '智能语音合成和处理工具，支持多种音色和语言',
+    icon: '🎵',
+    price: '¥699',
+    features: ['语音合成', '音色定制', '语音克隆', '批量生成'],
+    actionText: '立即查看',
+    actionUrl: '#',
+  },
+  {
+    id: 'ai-image-enhancer',
+    title: 'AI图像增强器',
+    description: '专业的AI图像处理工具，支持超分辨率、去噪、修复等功能',
+    icon: '🖼️',
+    price: '¥399',
+    features: ['超分辨率', '智能去噪', '图像修复', '风格转换'],
+    actionText: '立即查看',
+    actionUrl: '#',
+  },
+]
+
+// 加载资源数据
+const loadResourceData = (type: 'free' | 'premium') => {
+  activeTab.value = type
+
+  // 直接使用默认数据
+  if (type === 'free') {
+    freeResources.value = defaultFreeResources
+  } else {
+    premiumResources.value = defaultPremiumResources
+  }
+
+  // 添加动画效果
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.resource-card')
+    cards.forEach((card, index) => {
+      setTimeout(() => {
+        card.classList.add('animate-in')
+      }, index * 100)
+    })
+  }, 100)
+}
 
 // 处理资源操作
 const handleResourceAction = (url?: string) => {
-  if (url) {
-    window.open(url, '_blank')
+  // 对于付费资源，跳转到详情页面
+  if (activeTab.value === 'premium') {
+    // 从当前资源中找到对应的资源ID
+    const currentResource = currentResources.value.find((resource) => resource.actionUrl === url)
+    if (currentResource) {
+      // 使用Vue Router跳转到资源详情页面
+      router.push(`/ai-resource/${currentResource.id}`)
+    }
+  } else {
+    // 免费资源直接跳转到外部链接
+    if (url && url !== '#') {
+      window.open(url, '_blank')
+    }
   }
 }
 
-// 页面加载动画
+// 页面初始化
 onMounted(() => {
-  const cards = document.querySelectorAll('.resource-card')
-  cards.forEach((card, index) => {
-    setTimeout(() => {
-      card.classList.add('animate-in')
-    }, index * 100)
-  })
+  // 默认加载免费资源
+  loadResourceData('free')
 })
 </script>
 
@@ -239,14 +359,70 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-/* 资源板块 */
-.resource-section {
-  padding: var(--spacing-2xl) 0;
-  position: relative;
+/* 资源选择器 */
+.resource-selector {
+  padding: var(--spacing-xl) 0;
+  background: rgba(248, 250, 252, 0.5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 }
 
-.resource-section:nth-child(even) {
-  background: rgba(0, 0, 0, 0.02);
+.selector-tabs {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius-lg);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.tab-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+}
+
+.tab-icon {
+  font-size: 1.2em;
+}
+
+.tab-text {
+  font-weight: 700;
+}
+
+.tab-count {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-left: var(--spacing-xs);
+}
+
+/* 资源内容区域 */
+.resource-content {
+  padding: var(--spacing-2xl) 0;
+  position: relative;
 }
 
 .section-header {
@@ -269,14 +445,6 @@ onMounted(() => {
   font-size: 1.2em;
 }
 
-.section-description {
-  font-size: var(--font-size-lg);
-  color: var(--color-text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
 /* 资源网格 */
 .resource-grid {
   display: grid;
@@ -296,76 +464,5 @@ onMounted(() => {
 .resource-card.animate-in {
   opacity: 1;
   transform: translateY(0);
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .resource-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--spacing-lg);
-  }
-}
-
-@media (max-width: 768px) {
-  .page-hero {
-    padding: calc(var(--header-height) + var(--spacing-xl)) 0 var(--spacing-xl);
-  }
-
-  .hero-title {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-
-  .hero-subtitle {
-    font-size: var(--font-size-base);
-  }
-
-  .resource-section {
-    padding: var(--spacing-xl) 0;
-  }
-
-  .section-title {
-    font-size: var(--font-size-xl);
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .section-description {
-    font-size: var(--font-size-base);
-  }
-
-  .resource-grid {
-    grid-template-columns: 1fr;
-    gap: var(--spacing-lg);
-  }
-}
-
-@media (max-width: 480px) {
-  .page-hero {
-    padding: calc(var(--header-height) + var(--spacing-lg)) 0 var(--spacing-lg);
-  }
-
-  .resource-section {
-    padding: var(--spacing-lg) 0;
-  }
-
-  .section-header {
-    margin-bottom: var(--spacing-xl);
-  }
-}
-
-/* 加载动画 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.resource-card.animate-in {
-  animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 </style>

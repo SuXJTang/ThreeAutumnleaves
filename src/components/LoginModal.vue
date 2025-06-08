@@ -46,6 +46,12 @@
           {{ isLoading ? '登录中...' : '登录' }}
         </button>
 
+        <!-- 演示登录按钮 -->
+        <button type="button" @click="demoLogin" class="demo-login-btn" :disabled="isLoading">
+          <span v-if="isLoading" class="loading-spinner"></span>
+          {{ isLoading ? '登录中...' : '演示登录（无需密码）' }}
+        </button>
+
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
         </div>
@@ -115,6 +121,48 @@ const switchToRegister = () => {
 // 切换到忘记密码
 const switchToForgotPassword = () => {
   emit('switchToForgotPassword')
+}
+
+// 演示登录功能
+const demoLogin = async () => {
+  console.log('开始演示登录')
+
+  isLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    // 模拟登录延迟
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // 创建演示用户数据
+    const demoUser = {
+      id: 'demo-user-001',
+      username: '演示用户',
+      email: 'demo@example.com',
+      avatar: '🎭',
+      role: 'user',
+      createdAt: new Date().toISOString(),
+    }
+
+    // 创建模拟token
+    const demoToken = 'demo-token-' + Date.now()
+
+    // 保存认证信息
+    apiUtils.saveAuthInfo(demoToken, demoUser)
+
+    successMessage.value = '演示登录成功！'
+
+    // 延迟后关闭模态框并触发成功事件
+    setTimeout(() => {
+      emit('loginSuccess', demoUser)
+      closeModal()
+    }, 1500)
+  } catch (error) {
+    errorMessage.value = '演示登录失败，请稍后重试'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 处理登录
@@ -537,6 +585,72 @@ const handleLogin = async () => {
 }
 
 .login-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 演示登录按钮样式 */
+.demo-login-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+  background-size: 200% 200%;
+  color: white;
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  box-shadow:
+    0 4px 20px rgba(102, 126, 234, 0.3),
+    0 2px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: demoButtonGradient 3s ease-in-out infinite;
+}
+
+.demo-login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.demo-login-btn:hover::before {
+  left: 100%;
+}
+
+.demo-login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-position: 100% 0%;
+  box-shadow:
+    0 6px 25px rgba(102, 126, 234, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+@keyframes demoButtonGradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.demo-login-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }

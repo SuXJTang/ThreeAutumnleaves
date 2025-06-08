@@ -3,15 +3,14 @@
     <!-- 页面头部 -->
     <section class="page-hero">
       <div class="container">
-        <!-- 返回按钮 -->
-        <button class="back-button" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
+        <!-- 使用通用返回按钮组件 -->
+        <div class="back-button-container">
+          <BackButton @click="goBack" :icon-only="false" />
+        </div>
+
         <div class="hero-content">
           <h1 class="hero-title">3D打印作品展示</h1>
-          <p class="hero-subtitle">探索精彩的3D打印世界，从创意设计到精美成品，发现无限可能</p>
+          <p class="hero-subtitle">探索创意的三维世界，从构思到实现</p>
         </div>
       </div>
     </section>
@@ -79,12 +78,20 @@
       <div class="container">
         <div class="gallery-wrapper">
           <div ref="waterfallContainer" class="waterfall-container">
-            <PrintingCard
+            <ProjectCard
               v-for="(item, index) in filteredItems"
               :key="item.id"
-              :item="item"
+              :id="item.id"
+              type="3d-printing"
+              :image="item.image"
+              :title="item.title"
+              :description="item.description"
+              :view-count="item.views"
+              :like-count="item.downloads"
+              :tags="item.tags"
+              :author="item.author"
               :style="{ '--delay': index * 0.1 + 's' }"
-              @click="openModal"
+              class="printing-card"
             />
           </div>
         </div>
@@ -99,50 +106,15 @@
         </div>
       </div>
     </section>
-
-    <!-- 详情模态框 -->
-    <div v-if="selectedItem" class="modal-overlay" @click="closeModal">
-      <div class="modal-content" @click.stop>
-        <button class="modal-close" @click="closeModal">×</button>
-        <div class="modal-image">
-          <img :src="selectedItem.image" :alt="selectedItem.title" />
-        </div>
-        <div class="modal-info">
-          <h2 class="modal-title">{{ selectedItem.title }}</h2>
-          <p class="modal-description">{{ selectedItem.description }}</p>
-          <div class="modal-meta">
-            <div class="meta-item">
-              <span class="meta-label">作者：</span>
-              <span class="meta-value">{{ selectedItem.author }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">分类：</span>
-              <span class="meta-value">{{ selectedItem.category }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">浏览量：</span>
-              <span class="meta-value">{{ selectedItem.views }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">下载量：</span>
-              <span class="meta-value">{{ selectedItem.downloads }}</span>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button class="btn btn-primary">下载模型</button>
-            <button class="btn btn-secondary">收藏</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import PrintingCard from '@/components/PrintingCard.vue'
+import ProjectCard from '@/components/common/ProjectCard.vue'
 import CategoryNav from '@/components/CategoryNav.vue'
+import BackButton from '@/components/common/BackButton.vue'
 
 const router = useRouter()
 
@@ -150,12 +122,24 @@ const router = useRouter()
 const selectedCategory = ref('all')
 const searchQuery = ref('')
 const sortBy = ref('latest')
-const selectedItem = ref(null)
 const waterfallContainer = ref(null)
 
 const isLoading = ref(false)
 const currentPage = ref(3)
 const itemsPerPage = 12
+
+// 定义项目项类型
+interface PrintingItem {
+  id: number
+  title: string
+  description: string
+  image: string
+  category: string
+  author: string
+  views: number
+  downloads: number
+  tags: string[]
+}
 
 // 分类数据
 const categories = ref([
@@ -180,7 +164,7 @@ const categories = ref([
 ])
 
 // 作品数据
-const items = ref([
+const items = ref<PrintingItem[]>([
   {
     id: 1,
     title: '2D转3D工作流程',
@@ -349,7 +333,7 @@ const items = ref([
 ])
 
 // 所有可用的作品数据（模拟更大的数据集）
-const allItems = ref([
+const allItems = ref<PrintingItem[]>([
   ...items.value,
   // 添加更多示例数据
   {
@@ -522,16 +506,16 @@ const generateMoreItems = () => {
 // 完整的数据集（100个项目）
 allItems.value = [...allItems.value, ...generateMoreItems()]
 
-// 计算属性
-const filteredItems = computed(() => {
+// 过滤和排序项目
+const filteredItems = computed<PrintingItem[]>(() => {
   let filtered = allItems.value
 
-  // 分类筛选
+  // 根据分类过滤
   if (selectedCategory.value !== 'all') {
     filtered = filtered.filter((item) => item.category === selectedCategory.value)
   }
 
-  // 搜索筛选
+  // 根据搜索词过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(
@@ -570,26 +554,6 @@ const selectCategory = (categoryId: string) => {
       initWaterfall()
     })
   }, 50)
-}
-
-interface PrintingItem {
-  id: number
-  title: string
-  description: string
-  image: string
-  category: string
-  author: string
-  views: number
-  downloads: number
-  tags: string[]
-}
-
-const openModal = (item: PrintingItem) => {
-  selectedItem.value = item
-}
-
-const closeModal = () => {
-  selectedItem.value = null
 }
 
 // 返回上一页
@@ -691,7 +655,7 @@ onMounted(() => {
 
 /* 页面头部 */
 .page-hero {
-  padding: var(--spacing-2xl) 0;
+  padding: var(--spacing-xl) 0; /* 降低上下内边距 */
   background: linear-gradient(180deg, rgba(34, 197, 94, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
   position: relative;
   overflow: hidden;
@@ -717,10 +681,10 @@ onMounted(() => {
 }
 
 .hero-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(2rem, 4vw, 3.5rem); /* 降低字体大小 */
   font-weight: 800;
   color: var(--color-text);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md); /* 减少下边距 */
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -728,49 +692,11 @@ onMounted(() => {
 }
 
 .hero-subtitle {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base); /* 降低字体大小 */
   color: var(--color-text-secondary);
   max-width: 800px;
   margin: 0 auto;
-  line-height: 1.6;
-}
-
-/* 返回按钮样式 */
-.back-button {
-  position: absolute;
-  top: var(--spacing-lg);
-  left: var(--spacing-lg);
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(34, 197, 94, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.back-button:hover {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
-}
-
-.back-button:hover svg {
-  color: white;
-}
-
-.back-button svg {
-  width: 20px;
-  height: 20px;
-  color: var(--color-primary);
-  transition: color 0.3s ease;
+  line-height: 1.4; /* 减小行高 */
 }
 
 /* 分类导航栏 */
@@ -1029,211 +955,12 @@ onMounted(() => {
   background: #ffffff;
 }
 
-/* 模态框样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(8px);
-}
-
-.modal-content {
-  background: white;
-  border-radius: var(--border-radius-xl);
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
-  position: relative;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-close {
-  position: absolute;
-  top: var(--spacing-lg);
-  right: var(--spacing-lg);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.1);
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  z-index: 10;
-  transition: all 0.3s ease;
-}
-
-.modal-close:hover {
-  background: var(--color-primary);
-  color: white;
-}
-
-.modal-image img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.modal-info {
-  padding: var(--spacing-2xl);
-}
-
-.modal-title {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-  margin-bottom: var(--spacing-lg);
-  color: var(--color-text);
-}
-
-.modal-description {
-  font-size: var(--font-size-base);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--spacing-xl);
-}
-
-.modal-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-xl);
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.meta-label {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.meta-value {
-  color: var(--color-text-secondary);
-}
-
-.modal-actions {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.btn {
-  padding: var(--spacing-md) var(--spacing-xl);
-  border-radius: var(--border-radius-lg);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  color: white;
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
-}
-
-.btn-secondary {
-  background: var(--color-background-secondary);
-  color: var(--color-text);
-  border: 2px solid var(--color-border);
-}
-
-.btn-secondary:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .page-hero {
-    padding: calc(var(--header-height) + var(--spacing-xl)) 0 var(--spacing-xl);
-  }
-
-  .hero-title {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-
-  .hero-subtitle {
-    font-size: var(--font-size-base);
-  }
-
-  .category-list {
-    padding: 0 var(--spacing-md);
-  }
-
-  .category-item {
-    min-width: 80px;
-    padding: var(--spacing-sm) var(--spacing-md);
-  }
-
-  .category-icon {
-    font-size: 1.4rem;
-  }
-
-  .category-name {
-    font-size: var(--font-size-xs);
-  }
-
-  .filter-wrapper {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .search-box {
-    max-width: none;
-  }
-
-  .filter-options {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-
-  .sort-wrapper {
-    justify-content: space-between;
-  }
-
-  .results-count {
-    text-align: center;
-  }
-
-  .modal-content {
-    max-width: 95vw;
-    margin: var(--spacing-md);
-  }
-
-  .modal-info {
-    padding: var(--spacing-lg);
-  }
-
-  .modal-meta {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .category-nav {
-    display: none;
-  }
+/* 调试信息 */
+.debug-info {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-size: 14px;
 }
 
 /* 加载动画 */
@@ -1250,5 +977,13 @@ onMounted(() => {
 
 .service-item.animate-in {
   animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 返回按钮容器 */
+.back-button-container {
+  position: absolute;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  z-index: 10;
 }
 </style>

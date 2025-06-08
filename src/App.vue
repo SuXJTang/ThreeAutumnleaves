@@ -1,29 +1,35 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 // AppFooter 移除，将在各个页面中单独引入
 import BackToTop from './components/BackToTop.vue'
 import LoginModal from './components/LoginModal.vue'
 import RegisterModal from './components/RegisterModal.vue'
 import ForgotPasswordModal from './components/ForgotPasswordModal.vue'
 import { apiUtils } from './utils/api'
+import { useUserStore } from './stores/user'
 
 // 用户类型定义
 interface User {
   id: string | number
   username: string
   avatar?: string
+  email?: string
   // 其他用户属性
 }
+
+// 获取路由实例
+const router = useRouter()
+const route = useRoute()
+
+// 获取用户存储
+const userStore = useUserStore()
 
 // 模态框状态
 const isLoginModalVisible = ref(false)
 const isRegisterModalVisible = ref(false)
 const isForgotPasswordModalVisible = ref(false)
-const currentUser = ref<User | null>(null)
-
-// 获取当前路由
-const route = useRoute()
+const currentUser = computed(() => userStore.currentUser)
 
 // 控制头部导航栏显示
 const showHeader = computed(() => {
@@ -33,26 +39,36 @@ const showHeader = computed(() => {
 
 // 初始化时检查登录状态
 onMounted(() => {
-  const savedUser = apiUtils.getSavedUserInfo()
-  if (savedUser && apiUtils.isLoggedIn()) {
-    currentUser.value = savedUser as User
-    console.log('用户已登录:', savedUser)
-  }
+  console.log('当前用户状态:', userStore.currentUser, userStore.isLoggedIn)
 })
+
+// 用户菜单状态
+const isUserMenuVisible = ref(false)
 
 // 显示登录模态框或用户菜单
 const showLoginModal = () => {
   console.log('点击登录按钮，当前用户:', currentUser.value)
   if (currentUser.value) {
-    // 如果已登录，显示用户菜单（这里可以扩展为下拉菜单）
-    console.log('用户已登录，执行登出')
-    handleLogout()
+    // 如果已登录，切换用户菜单显示状态
+    isUserMenuVisible.value = !isUserMenuVisible.value
+    console.log('用户菜单状态:', isUserMenuVisible.value)
   } else {
     // 如果未登录，显示登录模态框
     console.log('用户未登录，显示登录模态框')
     isLoginModalVisible.value = true
     console.log('登录模态框状态:', isLoginModalVisible.value)
   }
+}
+
+// 关闭用户菜单
+const closeUserMenu = () => {
+  isUserMenuVisible.value = false
+}
+
+// 导航到指定路由
+const navigateTo = (path: string) => {
+  router.push(path)
+  closeUserMenu()
 }
 
 // 关闭登录模态框
@@ -91,14 +107,15 @@ const switchToLogin = () => {
 
 // 处理登录成功
 const handleLoginSuccess = (user: User) => {
-  currentUser.value = user
+  userStore.currentUser = user
+  isLoginModalVisible.value = false
   console.log('登录成功:', user)
   // 这里可以添加登录成功后的逻辑，比如更新全局状态等
 }
 
 // 处理注册成功
 const handleRegisterSuccess = (user: User) => {
-  currentUser.value = user
+  userStore.currentUser = user
   console.log('注册成功:', user)
   // 这里可以添加注册成功后的逻辑
 }
@@ -113,7 +130,8 @@ const handleForgotPasswordSuccess = () => {
 // 处理登出
 const handleLogout = () => {
   apiUtils.clearAuthInfo()
-  currentUser.value = null
+  userStore.currentUser = null
+  isUserMenuVisible.value = false
   console.log('用户已登出')
 }
 </script>
@@ -135,17 +153,64 @@ const handleLogout = () => {
           <RouterLink to="/community" class="nav-link">社区交流</RouterLink>
           <RouterLink to="/announcement" class="nav-link">公告</RouterLink>
         </nav>
-        <button class="login-btn" @click="showLoginModal">
-          <span v-if="currentUser" class="user-info">
-            {{ currentUser.avatar }} {{ currentUser.username }}
-          </span>
-          <span v-else>登录</span>
-        </button>
+        <div class="user-section">
+          <button class="login-btn" @click="showLoginModal">
+            <span v-if="currentUser" class="user-info">
+              <div class="user-avatar-small">
+                {{ currentUser.avatar || currentUser.username?.charAt(0).toUpperCase() }}
+              </div>
+              {{ currentUser.username }}
+            </span>
+            <span v-else>登录</span>
+          </button>
+
+          <!-- 用户下拉菜单 -->
+          <div v-if="currentUser && isUserMenuVisible" class="user-menu" @click.stop>
+            <div class="user-menu-header">
+              <div class="user-avatar-large">
+                {{ currentUser.avatar || currentUser.username?.charAt(0).toUpperCase() }}
+              </div>
+              <div class="user-details">
+                <h4>{{ currentUser.username }}</h4>
+                <p>{{ currentUser.email || '未设置邮箱' }}</p>
+              </div>
+            </div>
+
+            <div class="user-menu-items">
+              <div class="menu-item" @click="() => navigateTo('/user/profile')">
+                <span class="menu-icon">👤</span>
+                个人中心
+              </div>
+
+              <div class="menu-item" @click="() => navigateTo('/user/orders')">
+                <span class="menu-icon">📦</span>
+                我的订单
+              </div>
+
+              <div class="menu-item" @click="() => navigateTo('/user/favorites')">
+                <span class="menu-icon">❤️</span>
+                我的收藏
+              </div>
+
+              <div class="menu-item" @click="() => navigateTo('/user/settings')">
+                <span class="menu-icon">⚙️</span>
+                账户设置
+              </div>
+
+              <div class="menu-divider"></div>
+
+              <button class="menu-item logout-item" @click="handleLogout">
+                <span class="menu-icon">🚪</span>
+                退出登录
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 
-  <main>
+  <main @click="closeUserMenu">
     <RouterView />
   </main>
 
@@ -200,7 +265,7 @@ const handleLogout = () => {
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -509,5 +574,151 @@ main {
   background: rgba(255, 255, 255, 0.3);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* 用户菜单样式 */
+.user-section {
+  position: relative;
+  z-index: 9999; /* 增加z-index确保其内容不被遮挡 */
+}
+
+.user-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.user-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  z-index: 9999;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.user-menu-header {
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-avatar-large {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-details h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.user-details p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.user-menu-items {
+  padding: 10px 0;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: #f8f9fa;
+  color: #667eea;
+}
+
+.menu-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #e9ecef;
+  margin: 10px 0;
+}
+
+.logout-item {
+  color: #dc3545;
+}
+
+.logout-item:hover {
+  background: #fff5f5;
+  color: #dc3545;
+}
+
+/* 响应式用户菜单 */
+@media (max-width: 768px) {
+  .user-menu {
+    right: -10px;
+    min-width: 250px;
+  }
+
+  .user-menu-header {
+    padding: 15px;
+  }
+
+  .user-avatar-large {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
 }
 </style>

@@ -1,10 +1,9 @@
 <template>
   <div class="software-recommendations-view">
-    <!-- 返回按钮 -->
-    <button class="back-button" @click="goBack">
-      <span class="back-icon">←</span>
-      <span class="back-text">返回</span>
-    </button>
+    <!-- 使用通用返回按钮组件 -->
+    <div class="back-button-container">
+      <BackButton @click="goBack" :icon-only="false" />
+    </div>
 
     <!-- 标题区域 -->
     <div class="title-section">
@@ -159,8 +158,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import BackButton from '@/components/common/BackButton.vue'
 
 const router = useRouter()
 
@@ -1231,15 +1231,22 @@ const getPlatformClass = (platform: string) => {
 
 onMounted(() => {
   // 添加页面加载动画
-  if (typeof document !== 'undefined') {
-    setTimeout(() => {
-      const cards = document.querySelectorAll('.software-card')
-      cards.forEach((card, index) => {
-        setTimeout(() => {
-          card.classList.add('animate-in')
-        }, index * 50)
-      })
-    }, 100)
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    const animateCards = () => {
+      setTimeout(() => {
+        const cards = document.querySelectorAll('.software-card')
+        if (cards && cards.length > 0) {
+          cards.forEach((card, index) => {
+            setTimeout(() => {
+              card.classList.add('animate-in')
+            }, index * 50)
+          })
+        }
+      }, 100)
+    }
+
+    // 确保组件已挂载且DOM已更新
+    nextTick(animateCards)
   }
 })
 </script>
@@ -1261,42 +1268,11 @@ onMounted(() => {
 }
 
 /* 返回按钮样式 */
-.back-button {
+.back-button-container {
   position: absolute;
   top: 15px;
   left: 15px;
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  border-radius: 30px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: all 0.3s ease;
   z-index: 200;
-}
-
-.back-button:hover {
-  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
-}
-
-.back-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(34, 197, 94, 0.2);
-}
-
-.back-icon {
-  font-size: 18px;
-  margin-right: 6px;
-}
-
-.back-text {
-  font-weight: 600;
-  font-size: 14px;
 }
 
 /* 标题区域样式 */

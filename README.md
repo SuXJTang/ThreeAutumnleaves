@@ -27,6 +27,47 @@
 
 ## 主要功能
 
+### 通用返回按钮组件
+
+项目包含一个设计精美的通用返回按钮组件，可在整个应用中保持一致的导航体验：
+
+- 支持纯图标模式或带文本模式
+- 响应式设计，在移动设备上自动调整大小
+- 平滑的过渡动画和悬停效果
+- 自定义点击处理或默认返回上一页功能
+
+#### 使用方法
+
+```vue
+<script setup>
+import BackButton from '@/components/common/BackButton.vue'
+
+// 自定义返回处理函数（可选）
+const handleCustomBack = () => {
+  // 自定义返回逻辑
+  console.log('返回按钮被点击')
+  // router.push('/某个路径')
+}
+</script>
+
+<template>
+  <!-- 基本用法 - 返回上一页 -->
+  <BackButton />
+
+  <!-- 自定义文本 -->
+  <BackButton text="返回首页" />
+
+  <!-- 只显示图标 -->
+  <BackButton :icon-only="true" />
+
+  <!-- 自定义点击事件 -->
+  <BackButton @click="handleCustomBack" />
+
+  <!-- 指定返回路径 -->
+  <BackButton to="/" text="返回首页" />
+</template>
+```
+
 ### 响应式设计
 
 - 适配各种设备尺寸，从移动设备到桌面显示器

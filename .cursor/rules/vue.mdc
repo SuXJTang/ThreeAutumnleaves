@@ -56,4 +56,4 @@ alwaysApply: true
     - 实现适当的错误边界处理和性能监控。
 
 
-    在整个过程中，始终参考[Vue.js官方文档](https://vuejs.org/guide/introduction.html)，确保使用最新的Vue.js开发最佳实践。
+    在整个过程中，始终参考[Vue.js官方文档](mdc:https:/vuejs.org/guide/introduction.html)，确保使用最新的Vue.js开发最佳实践。

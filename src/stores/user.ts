@@ -23,8 +23,13 @@ export const useUserStore = defineStore('user', () => {
     if (savedUser && apiUtils.isLoggedIn()) {
       currentUser.value = savedUser as User
       console.log('用户已从本地存储加载:', savedUser)
+      return true
     }
+    return false
   }
+
+  // 立即初始化
+  initializeFromStorage()
 
   // 登录操作
   const login = async (username: string, password: string, rememberMe: boolean) => {
